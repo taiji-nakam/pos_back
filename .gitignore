@@ -1,8 +1,7 @@
 /__pycache__
-/app/db_control/__pycache__/
-/app/__pycache__/
+/db_control/__pycache__/
 .venv/Include/site/python3.12/greenlet/greenlet.h
 /venv
 /.env
 /.venv
-/module/__pycache__
+/routers/__pycache__

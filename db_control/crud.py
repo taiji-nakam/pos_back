@@ -10,8 +10,8 @@ import pandas as pd
 from datetime import datetime
 from typing import Tuple
 
-from app.db_control.connect import engine
-from app.db_control.mymodels import m_product
+from db_control.connect import engine
+from db_control.mymodels import m_product
 
 # m_productデータ取得
 def select_m_product(code) -> Tuple[int,str]:
