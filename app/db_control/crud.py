@@ -8,39 +8,55 @@ from sqlalchemy.orm import sessionmaker
 import json
 import pandas as pd
 from datetime import datetime
+from typing import Tuple
 
 from app.db_control.connect import engine
 from app.db_control.mymodels import m_product
 
 # m_productデータ取得
-def select_m_product(code):
+def select_m_product(code) -> Tuple[int,str]:
+    
     # 初期化
-    result_json = None  
+    result_json = None
+    status_code = 200
+
     # session構築
     Session = sessionmaker(bind=engine)
-    session = Session()       
+    session = Session()
     query = session.query(m_product).filter(m_product.code == code)
+    status_code = 200
+
     try:
         #トランザクションを開始
         with session.begin():
-            result = query.all()
-        # 結果をオブジェクトから辞書に変換し、リストに追加
-        result_dict_list = []
-        for res in result:
-            result_dict_list.append({
-                "prd_id": res.prd_id,
-                "code": code,
-                "name": res.name,
-                "price": res.price
-            })
-        # リストをJSONに変換
-        result_json = json.dumps(result_dict_list, ensure_ascii=False)
+            result = query.first()
+        
+        # 結果をチェック
+        if not result:
+            # データが見つからない場合
+            result_json = json.dumps({"message": "Product not found"}, ensure_ascii=False)
+            status_code = 404
+        else:
+            # 結果を辞書に変換
+            result_json = json.dumps({
+                "prd_id": result.prd_id,
+                "code": result.code,
+                "name": result.name,
+                "price": result.price
+            }, ensure_ascii=False)
     except Exception as e:
-        print(f"[select_m_product]例外が発生しました: {e}")
-        session.rollback()
-    # セッションを閉じる
-    session.close()
-    return result_json
+        result_json = json.dumps(
+            {"error": "例外が発生しました。", "details": str(e)}, 
+            ensure_ascii=False
+        )
+        print("!!error!!")
+        print(e)
+        status_code = 500
+    finally:
+        # セッションを閉じる
+        session.close()
+
+    return status_code, result_json
 
 # assessmentデータ追加
 # def insert_assessment():
