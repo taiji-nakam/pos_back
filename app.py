@@ -12,6 +12,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # 追加: レスポンスヘッダーをクライアント側で取得可能にする
 )
 # routerオブジェクトをアプリケーションに追加
 app.include_router(pos_router)
