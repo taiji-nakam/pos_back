@@ -5,20 +5,10 @@ from db_control import crud, mymodels
 import json
 
 router = APIRouter()
-# app = FastAPI()
-
-# CORS 設定を追加
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],  # 必要に応じて特定のオリジンに制限
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
 
 @router.get("/")
 def read_root():
-    return {"message": "Hello, FastAPI!"}
+    return {"message": "Hello, POS(FastAPI)"}
 
 @router.get("/prd/{prd_id}")
 def read_prd(prd_id: int):
