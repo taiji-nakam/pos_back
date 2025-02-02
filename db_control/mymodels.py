@@ -12,6 +12,32 @@ class m_product(Base):
     name:Mapped[str] = mapped_column()
     price:Mapped[int] = mapped_column()
 
+class m_tax(Base):
+    __tablename__ = 'm_tax_taig'
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str] = mapped_column()
+    percent: Mapped[float] = mapped_column()
+
+class t_transaction(Base):
+    __tablename__ = 't_transaction_taig'
+    trd_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    datetime: Mapped[str] = mapped_column()
+    emp_cd: Mapped[str] = mapped_column()
+    store_cd: Mapped[str] = mapped_column()
+    pos_no: Mapped[str] = mapped_column()
+    total_amt: Mapped[int] = mapped_column()
+    ttl_amt_ex_tax: Mapped[int] = mapped_column()
+
+class d_transaction_details(Base):
+    __tablename__ = 'd_transaction_details_taig'
+    trd_id: Mapped[int] = mapped_column(ForeignKey('t_transaction_taig.trd_id'), primary_key=True)  # 取引 ID（FK）
+    dtl_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # 明細 ID（PK）
+    prd_id: Mapped[int] = mapped_column(ForeignKey('m_product_taig.prd_id'))  # 商品 ID（FK）
+    prd_code: Mapped[str] = mapped_column()
+    prd_name: Mapped[str] = mapped_column()
+    prd_price: Mapped[int] = mapped_column()
+    tax_cd: Mapped[str] = mapped_column(ForeignKey('m_tax_taig.code'))  # 税コード（FK）
 
 # 以下 削除予定
 class assessment_answer(Base):

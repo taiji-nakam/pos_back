@@ -11,7 +11,9 @@ from datetime import datetime
 from typing import Tuple
 
 from db_control.connect import engine
-from db_control.mymodels import m_product
+from db_control.mymodels import m_product, t_transaction, d_transaction_details
+
+from models.params import CheckoutData
 
 # m_productデータ取得
 def select_m_product(code) -> Tuple[int,str]:
@@ -57,6 +59,75 @@ def select_m_product(code) -> Tuple[int,str]:
         session.close()
 
     return status_code, result_json
+
+# transactionデータ追加
+def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
+
+    # 初期化
+    result_json = None
+    status_code = 200
+    # 固定値
+    emp_cd = data.emp_cd or "9999999999"
+    store_cd = data.store_cd or "30"
+    pos_no = data.pos_no or "90"
+    tax_cd="10"
+
+    # session構築
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        #トランザクションを開始
+        with session.begin():
+            # 取引データ追加
+            total_amount = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
+            new_transaction = t_transaction(
+                datetime=datetime.now(),
+                emp_cd=emp_cd,
+                store_cd=store_cd,
+                pos_no=pos_no,
+                total_amt=total_amount,
+                ttl_amt_ex_tax=total_amount #LV1では消費税計算なし
+                # ttl_amt_ex_tax=round(total_amount / 1.1)
+            )
+            session.add(new_transaction)
+            session.flush() #IDを取得するためにflush
+            session.refresh(new_transaction) # 新しいtrd_id取得
+            # 発行されたトランザクションIDを取得
+            transaction_id = new_transaction.trd_id
+
+            # 取引明細データ追加
+            details_to_insert = [
+                d_transaction_details(
+                    trd_id=transaction_id,
+                    dtl_id=index + 1,  # 明細ID（取引ごとに連番）
+                    prd_id=item.prdId,
+                    prd_code=item.code,
+                    prd_name=item.name,
+                    prd_price=item.price,
+                    # quantity=item.quantity,
+                    tax_cd=tax_cd
+                )
+                for index, item in enumerate(data.cart)
+            ]
+            session.add_all(details_to_insert)
+            #正常終了
+            result_json = json.dumps(
+                {"total_amount":total_amount}, 
+                ensure_ascii=False
+            )
+
+    except Exception as e:
+        result_json = json.dumps(
+            {"error": "例外が発生しました。", "details": str(e)}, 
+            ensure_ascii=False
+        )
+        session.rollback()
+        print("error:",e)
+        status_code = 500
+    finally:
+        session.close()
+    return status_code, result_json
+
 
 # assessmentデータ追加
 # def insert_assessment():
