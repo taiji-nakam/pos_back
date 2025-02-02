@@ -5,3 +5,4 @@
 /.env
 /.venv
 /routers/__pycache__
+/models/__pycache__
