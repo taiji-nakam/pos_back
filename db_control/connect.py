@@ -34,14 +34,7 @@ else:
     with open(temp_pem_path, "r") as temp_pem:
         print("=====Temporary certificate file content:=====")
         print(temp_pem_path)
-        print(temp_pem.read())
-
-    # 一時ファイル削除の登録
-    # def cleanup_temp_file(path):
-    #     if os.path.exists(path):
-    #         os.remove(path)
-
-    # atexit.register(cleanup_temp_file, temp_pem_path)
+        # print(temp_pem.read())
 
     # データベース接続設定
     engine = create_engine(
@@ -52,3 +45,11 @@ else:
             }
         }
     )
+
+    # 一時ファイル削除の登録
+    def cleanup_temp_file(path):
+        if os.path.exists(path):
+            os.remove(path)
+
+    # Python正常終了時に一時ファイルを削除
+    atexit.register(cleanup_temp_file, temp_pem_path)
