@@ -46,3 +46,22 @@ async def checkout(data: CheckoutData):
     
     # 正常レスポンス
     return json.loads(result)  # JSON を直接返す
+
+@router.get("/tax")
+def read_tax():
+    # 最新の税情報の取得
+    result = None
+    status,result = crud.select_m_tax()
+    # ステータスコードに応じた処理
+    if status == 404:
+        return JSONResponse(
+            content=json.loads(result),  # JSON を直接返す
+            status_code=404
+        )
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    # 正常レスポンス
+    return json.loads(result)  # JSON を直接返す

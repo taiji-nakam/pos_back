@@ -1,7 +1,6 @@
 # uname() error回避
 import platform
-print("platform", platform.uname())
-
+import math
 from sqlalchemy import create_engine, insert, delete, update, select
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
@@ -11,7 +10,7 @@ from datetime import datetime
 from typing import Tuple
 
 from db_control.connect import engine
-from db_control.mymodels import m_product, t_transaction, d_transaction_details
+from db_control.mymodels import m_product, t_transaction, d_transaction_details, m_tax
 
 from models.params import CheckoutData
 
@@ -70,7 +69,8 @@ def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
     emp_cd = data.emp_cd or "9999999999"
     store_cd = data.store_cd or "30"
     pos_no = data.pos_no or "90"
-    tax_cd="10"
+    tax_cd= data.tax_code or "10"
+    tax_rate = data.tax_percent/100 or 0.1
 
     # session構築
     Session = sessionmaker(bind=engine)
@@ -79,15 +79,15 @@ def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
         #トランザクションを開始
         with session.begin():
             # 取引データ追加
-            total_amount = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
+            total_amt = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
+            total_amt_ex_tax = sum(math.floor(item.totalPrice * (1 + tax_rate)) for item in data.cart)  # 各商品の税込み価格を計算し、小数点以下を切り捨てた総額
             new_transaction = t_transaction(
                 datetime=datetime.now(),
                 emp_cd=emp_cd,
                 store_cd=store_cd,
                 pos_no=pos_no,
-                total_amt=total_amount,
-                ttl_amt_ex_tax=total_amount #LV1では消費税計算なし
-                # ttl_amt_ex_tax=round(total_amount / 1.1)
+                total_amt=total_amt,
+                ttl_amt_ex_tax=total_amt_ex_tax
             )
             session.add(new_transaction)
             session.flush() #IDを取得するためにflush
@@ -111,10 +111,10 @@ def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
             ]
             session.add_all(details_to_insert)
             #正常終了
-            result_json = json.dumps(
-                {"total_amount":total_amount}, 
-                ensure_ascii=False
-            )
+            result_json = json.dumps({
+                "total_amount": total_amt,
+                "total_amount_ex_tax": total_amt_ex_tax
+            }, ensure_ascii=False)
 
     except Exception as e:
         result_json = json.dumps(
@@ -128,6 +128,50 @@ def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
         session.close()
     return status_code, result_json
 
+# m_taxデータ取得
+def select_m_tax() -> Tuple[int,str]:
+    
+    # 初期化
+    result_json = None
+    status_code = 200
+
+    # session構築
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    query = session.query(m_tax).order_by(m_tax.id.desc()).limit(1)
+    status_code = 200
+
+    try:
+        #トランザクションを開始
+        with session.begin():
+            result = query.first()
+        
+        # 結果をチェック
+        if not result:
+            # データが見つからない場合
+            result_json = json.dumps({"message": "Tax not found"}, ensure_ascii=False)
+            status_code = 404
+        else:
+            # 結果を辞書に変換
+            result_json = json.dumps({
+                "id": result.id,
+                "code": result.code,
+                "name": result.name,
+                "percent": result.percent
+            }, ensure_ascii=False)
+    except Exception as e:
+        result_json = json.dumps(
+            {"error": "例外が発生しました。", "details": str(e)}, 
+            ensure_ascii=False
+        )
+        print("!!error!!")
+        print(e)
+        status_code = 500
+    finally:
+        # セッションを閉じる
+        session.close()
+
+    return status_code, result_json
 
 # assessmentデータ追加
 # def insert_assessment():

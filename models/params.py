@@ -20,3 +20,5 @@ class CheckoutData(BaseModel):
     emp_cd: str  # レジ担当者コード
     store_cd: str  # 店舗コード
     pos_no: str  # POS機 ID
+    tax_code: str # 税コード
+    tax_percent: float # 税率
