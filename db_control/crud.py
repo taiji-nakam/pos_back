@@ -1,16 +1,16 @@
 # uname() error回避
 import platform
 import math
-from sqlalchemy import create_engine, insert, delete, update, select
-import sqlalchemy
+from sqlalchemy import create_engine, insert, delete, update, select, and_, or_
 from sqlalchemy.orm import sessionmaker
 import json
 import pandas as pd
 from datetime import datetime
 from typing import Tuple
+from zoneinfo import ZoneInfo
 
 from db_control.connect import engine
-from db_control.mymodels import m_product, t_transaction, d_transaction_details, m_tax
+from db_control.mymodels import m_product, t_transaction, d_transaction_details, m_tax, m_promotion_plan
 
 from models.params import CheckoutData
 
@@ -82,7 +82,7 @@ def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
             total_amt = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
             total_amt_ex_tax = sum(math.floor(item.totalPrice * (1 + tax_rate)) for item in data.cart)  # 各商品の税込み価格を計算し、小数点以下を切り捨てた総額
             new_transaction = t_transaction(
-                datetime=datetime.now(),
+                datetime=datetime.now(ZoneInfo("Asia/Tokyo")),
                 emp_cd=emp_cd,
                 store_cd=store_cd,
                 pos_no=pos_no,
@@ -159,6 +159,77 @@ def select_m_tax() -> Tuple[int,str]:
                 "name": result.name,
                 "percent": result.percent
             }, ensure_ascii=False)
+    except Exception as e:
+        result_json = json.dumps(
+            {"error": "例外が発生しました。", "details": str(e)}, 
+            ensure_ascii=False
+        )
+        print("!!error!!")
+        print(e)
+        status_code = 500
+    finally:
+        # セッションを閉じる
+        session.close()
+
+    return status_code, result_json
+
+# m_productデータ取得(LV3用)
+def select_m_product_ex(code) -> Tuple[int,str]:
+    
+    # 初期化
+    result_json = None
+    status_code = 200
+
+    # session構築
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        # トランザクションを開始
+        with session.begin():
+            # 現在の日時（東京時間）
+            now = datetime.now(ZoneInfo("Asia/Tokyo"))
+
+            # 商品情報を取得
+            result = session.query(m_product).filter(
+                and_(
+                    m_product.code == code,
+                    m_product.from_date <= now,
+                    m_product.to_date >= now
+                )
+            ).first()
+        
+        # 結果をチェック
+        if not result:
+            # データが見つからない場合
+            result_json = json.dumps({"message": "Product not found"}, ensure_ascii=False)
+            status_code = 404
+        else:
+
+            # m_promotion_plan を取得
+            promotion = session.query(m_promotion_plan).filter(
+                and_(
+                    m_promotion_plan.prd_id == result.prd_id,
+                    m_promotion_plan.from_date <= now,
+                    m_promotion_plan.to_date >= now
+                )
+            ).first()
+
+            # プロモーション情報が存在しない場合は空文字をセット
+            plan_name = promotion.name if promotion else ""
+            plan_percent = promotion.percent if promotion else ""
+            plan_discount = promotion.discount if promotion else ""
+
+            # 結果を辞書に変換
+            result_json = json.dumps({
+                "prd_id": result.prd_id,
+                "code": result.code,
+                "name": result.name,
+                "price": result.price,
+                "plan_name": plan_name,
+                "plan_percent": plan_percent,
+                "plan_discount": plan_discount
+            }, ensure_ascii=False)
+
     except Exception as e:
         result_json = json.dumps(
             {"error": "例外が発生しました。", "details": str(e)}, 
