@@ -11,6 +11,8 @@ class m_product(Base):
     code:Mapped[str] = mapped_column()
     name:Mapped[str] = mapped_column()
     price:Mapped[int] = mapped_column()
+    from_date:Mapped[datetime] = mapped_column()
+    to_date:Mapped[datetime] = mapped_column()
 
 class m_tax(Base):
     __tablename__ = 'm_tax_taig'
@@ -38,6 +40,17 @@ class d_transaction_details(Base):
     prd_name: Mapped[str] = mapped_column()
     prd_price: Mapped[int] = mapped_column()
     tax_cd: Mapped[str] = mapped_column(ForeignKey('m_tax_taig.code'))  # 税コード（FK）
+
+class m_promotion_plan(Base):
+    __tablename__ = 'm_promotion_plan_taig'
+    prm_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)  # プロモーションID（PK）
+    prm_code: Mapped[str] = mapped_column()  # プロモーションコード（13桁）
+    from_date: Mapped[datetime] = mapped_column()  # 開始日（デフォルト現在時刻）
+    to_date: Mapped[datetime] = mapped_column()  # 終了日（NULL 許可）
+    name: Mapped[str] = mapped_column()  # プロモーション名（最大50文字）
+    percent: Mapped[float] = mapped_column()  # 割引率（5桁、少数2桁）
+    discount: Mapped[int] = mapped_column()  # 割引額（整数）
+    prd_id: Mapped[int] = mapped_column(ForeignKey('m_product_taig.prd_id'), nullable=False)  # 商品 ID（FK）
 
 # 以下 削除予定
 class assessment_answer(Base):

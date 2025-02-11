@@ -65,3 +65,22 @@ def read_tax():
         )
     # 正常レスポンス
     return json.loads(result)  # JSON を直接返す
+
+@router.get("/prd_ex/{prd_id}")
+def read_prd_ex(prd_id: int):
+    # 製品情報の取得(LV3)
+    result = None
+    status,result = crud.select_m_product_ex(prd_id)
+    # ステータスコードに応じた処理
+    if status == 404:
+        return JSONResponse(
+            content=json.loads(result),  # JSON を直接返す
+            status_code=404
+        )
+    elif status != 200:
+        raise HTTPException(
+            status_code=status,
+            detail=json.loads(result)
+        )
+    # 正常レスポンス
+    return json.loads(result)  # JSON を直接返す
