@@ -79,8 +79,8 @@ def insert_transaction(data:CheckoutData) -> Tuple[int,str]:
         #トランザクションを開始
         with session.begin():
             # 取引データ追加
-            total_amt = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
-            total_amt_ex_tax = sum(math.floor(item.totalPrice * (1 + tax_rate)) for item in data.cart)  # 各商品の税込み価格を計算し、小数点以下を切り捨てた総額
+            total_amt_ex_tax = sum(item.totalPrice for item in data.cart)  # 合計金額を計算
+            total_amt = sum(math.floor(item.totalPrice * (1 + tax_rate)) for item in data.cart)  # 各商品の税込み価格を計算し、小数点以下を切り捨てた総額
             new_transaction = t_transaction(
                 datetime=datetime.now(ZoneInfo("Asia/Tokyo")),
                 emp_cd=emp_cd,
