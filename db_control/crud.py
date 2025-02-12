@@ -215,6 +215,7 @@ def select_m_product_ex(code) -> Tuple[int,str]:
             ).first()
 
             # プロモーション情報が存在しない場合は空文字をセット
+            prm_id = promotion.prm_id if promotion else ""
             plan_name = promotion.name if promotion else ""
             plan_percent = promotion.percent if promotion else 0
             plan_discount = promotion.discount if promotion else 0
@@ -225,6 +226,7 @@ def select_m_product_ex(code) -> Tuple[int,str]:
                 "code": result.code,
                 "name": result.name,
                 "price": result.price,
+                "prmid": prm_id,
                 "plan_name": plan_name,
                 "plan_percent": plan_percent,
                 "plan_discount": plan_discount
