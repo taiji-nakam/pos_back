@@ -1,9 +1,11 @@
-from fastapi import FastAPI,HTTPException,APIRouter
+from fastapi import FastAPI,HTTPException,APIRouter,Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from db_control import crud, mymodels
 from models.params import CheckoutData
 import json
+import os
+from ipaddress import ip_address, ip_network
 
 router = APIRouter()
 
@@ -84,3 +86,22 @@ def read_prd_ex(prd_id: int):
         )
     # 正常レスポンス
     return json.loads(result)  # JSON を直接返す
+
+# 許可されたIP範囲を .env から取得し、リスト化
+ALLOWED_IP_RANGES = os.getenv("ALLOWED_IP_RANGES", "").split(",")
+# 許可された IP 範囲を `ip_network` に変換
+allowed_networks = [ip_network(range.strip()) for range in ALLOWED_IP_RANGES if range.strip()]
+
+@router.get("/client-ip")
+def get_client_ip(request: Request):
+    # ヘッダーから IP を取得（リバースプロキシ対策）
+    print(allowed_networks)
+    forwarded = request.headers.get("x-forwarded-for")
+    client_ip = forwarded.split(",")[0] if forwarded else request.client.host
+    client_ip_obj = ip_address(client_ip)
+
+    # 許可された IP アドレス範囲内かチェック
+    if any(client_ip_obj in network for network in allowed_networks):
+        return {"ip": client_ip}
+    else:
+        raise HTTPException(status_code=403, detail=f"Access denied: IP {client_ip} is not allowed")
