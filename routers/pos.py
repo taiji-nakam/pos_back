@@ -105,3 +105,8 @@ def get_client_ip(request: Request):
         return {"ip": client_ip}
     else:
         raise HTTPException(status_code=403, detail=f"Access denied: IP {client_ip} is not allowed")
+    
+@router.get("/client-ip-debug")
+async def debug_client_ip(request: Request):
+    headers = dict(request.headers)
+    return {"headers": headers}
