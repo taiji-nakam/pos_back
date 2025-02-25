@@ -96,7 +96,7 @@ allowed_networks = [ip_network(range.strip()) for range in ALLOWED_IP_RANGES if 
 class IPRequest(BaseModel):
     ip: str
 
-@router.get("/client-ip{client_ip}")
+@router.get("/client-ip/{client_ip}")
 def check_client_ip(client_ip: str):
     try:
         # 許可された範囲内かチェック
