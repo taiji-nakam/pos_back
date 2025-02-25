@@ -96,19 +96,31 @@ allowed_networks = [ip_network(range.strip()) for range in ALLOWED_IP_RANGES if 
 class IPRequest(BaseModel):
     ip: str
 
-@router.post("/client-ip")
-def check_client_ip(request: IPRequest):
+@router.get("/client-ip{client_ip}")
+def check_client_ip(client_ip: str):
     try:
-        client_ip_obj = ip_address(request.ip)
-
         # 許可された範囲内かチェック
-        if any(client_ip_obj in network for network in allowed_networks):
-            return {"status": "allowed", "ip": request.ip}
+        if any(client_ip in network for network in allowed_networks):
+            return {"status": "allowed", "ip": client_ip}
         else:
-            raise HTTPException(status_code=403, detail=f"Access denied: IP {request.ip} is not allowed")
+            raise HTTPException(status_code=403, detail=f"Access denied: IP {client_ip} is not allowed")
 
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid IP address format")
+    
+# @router.post("/client-ip")
+# def check_client_ip(request: IPRequest):
+#     try:
+#         client_ip_obj = ip_address(request.ip)
+
+#         # 許可された範囲内かチェック
+#         if any(client_ip_obj in network for network in allowed_networks):
+#             return {"status": "allowed", "ip": request.ip}
+#         else:
+#             raise HTTPException(status_code=403, detail=f"Access denied: IP {request.ip} is not allowed")
+
+#     except ValueError:
+#         raise HTTPException(status_code=400, detail="Invalid IP address format")
     
 @router.get("/client-ip-debug")
 async def debug_client_ip(request: Request):
