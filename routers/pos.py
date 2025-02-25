@@ -99,8 +99,10 @@ class IPRequest(BaseModel):
 @router.get("/client-ip/{client_ip}")
 def check_client_ip(client_ip: str):
     try:
+        client_ip_obj = ip_address(client_ip)  # str を ip_address に変換
+
         # 許可された範囲内かチェック
-        if any(client_ip in network for network in allowed_networks):
+        if any(client_ip_obj in network for network in allowed_networks):  # ip_address 型でチェック
             return {"status": "allowed", "ip": client_ip}
         else:
             raise HTTPException(status_code=403, detail=f"Access denied: IP {client_ip} is not allowed")
