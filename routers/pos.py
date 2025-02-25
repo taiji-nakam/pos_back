@@ -6,6 +6,7 @@ from models.params import CheckoutData
 import json
 import os
 from ipaddress import ip_address, ip_network
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -92,19 +93,22 @@ ALLOWED_IP_RANGES = os.getenv("ALLOWED_IP_RANGES", "").split(",")
 # 許可された IP 範囲を `ip_network` に変換
 allowed_networks = [ip_network(range.strip()) for range in ALLOWED_IP_RANGES if range.strip()]
 
-@router.get("/client-ip")
-def get_client_ip(request: Request):
-    # ヘッダーから IP を取得（リバースプロキシ対策）
-    print(allowed_networks)
-    forwarded = request.headers.get("x-forwarded-for")
-    client_ip = forwarded.split(",")[0] if forwarded else request.client.host
-    client_ip_obj = ip_address(client_ip)
+class IPRequest(BaseModel):
+    ip: str
 
-    # 許可された IP アドレス範囲内かチェック
-    if any(client_ip_obj in network for network in allowed_networks):
-        return {"ip": client_ip}
-    else:
-        raise HTTPException(status_code=403, detail=f"Access denied: IP {client_ip} is not allowed")
+@router.post("/client-ip")
+def check_client_ip(request: IPRequest):
+    try:
+        client_ip_obj = ip_address(request.ip)
+
+        # 許可された範囲内かチェック
+        if any(client_ip_obj in network for network in allowed_networks):
+            return {"status": "allowed", "ip": request.ip}
+        else:
+            raise HTTPException(status_code=403, detail=f"Access denied: IP {request.ip} is not allowed")
+
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid IP address format")
     
 @router.get("/client-ip-debug")
 async def debug_client_ip(request: Request):
